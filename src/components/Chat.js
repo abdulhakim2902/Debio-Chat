@@ -16,6 +16,7 @@ import { Fragment, useState } from 'react'
 
 import SendIcon from '@mui/icons-material/Send'
 import axios from 'axios'
+import { enqueueSnackbar } from 'notistack'
 
 export const Chat = ({ take }) => {
   const [message, setMessage] = useState()
@@ -58,18 +59,23 @@ export const Chat = ({ take }) => {
         return
       }
 
-      const answer = await axios.post('https://x.myriadchain.com/llm/api/generate', {
-        model: 'llama3',
-        prompt: msg,
-        stream: false
-      })
+      try {
+        const answer = await axios.post('https://x.myriadchain.com/llm/api/generate', {
+          model: 'llama3',
+          prompt: msg,
+          stream: false
+        })
 
-      const time = new Date().toLocaleTimeString().slice(0, 5)
-      const response = { from: 'AI', msg: answer.data.response, time }
+        const time = new Date().toLocaleTimeString().slice(0, 5)
+        const response = { from: 'AI', msg: answer.data.response, time }
 
-      setChats(prev => [...prev.slice(0, prev.length - 1), response])
-      setIsChatting(false)
-      return
+        setChats(prev => [...prev.slice(0, prev.length - 1), response])
+      } catch (err) {
+        setChats(prev => [...prev.slice(0, prev.length - 1)])
+        enqueueSnackbar(err?.message || err, { variant: 'error' })
+      } finally {
+        setIsChatting(false)
+      }
     })
   }
 
@@ -90,16 +96,21 @@ export const Chat = ({ take }) => {
         return
       }
 
-      const answer = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/api/chat`, {
-        msg: msg
-      })
+      try {
+        const answer = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/api/chat`, {
+          msg: msg
+        })
 
-      const time = new Date().toLocaleTimeString().slice(0, 5)
-      const response = { from: 'AI', msg: answer.data.response, time }
+        const time = new Date().toLocaleTimeString().slice(0, 5)
+        const response = { from: 'AI', msg: answer.data.response, time }
 
-      setChats(prev => [...prev.slice(0, prev.length - 1), response])
-      setIsChatting(false)
-      return
+        setChats(prev => [...prev.slice(0, prev.length - 1), response])
+      } catch (err) {
+        setChats(prev => [...prev.slice(0, prev.length - 1)])
+        enqueueSnackbar(err?.message || err, { variant: 'error' })
+      } finally {
+        setIsChatting(false)
+      }
     })
   }
 
@@ -116,7 +127,9 @@ export const Chat = ({ take }) => {
     <Fragment>
       <Grid container>
         <Box sx={{ marginX: 'auto', width: '100%' }}>
-          <Typography variant='h6'>Experimental Chat</Typography>
+          <Typography variant='h6' color='GrayText'>
+            Experimental Chat
+          </Typography>
           <Box display='flex' justifyContent='space-between' sx={{ width: '100%', marginBottom: 1 }}>
             <Button variant='outlined' color='secondary' disableRipple sx={{ cursor: 'default' }}>
               {model}
@@ -161,7 +174,6 @@ export const Chat = ({ take }) => {
             <IconButton onClick={() => addMessage('ME', message)} edge='start' disabled={isChatting}>
               {isChatting ? <CircularProgress size={20} /> : <SendIcon color='info' />}
             </IconButton>
-            {/* <Button variant='outlined'>Send</Button> */}
           </Box>
         </Grid>
       </Grid>
