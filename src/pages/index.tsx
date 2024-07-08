@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react'
+import { FormEvent, Fragment, useEffect, useState } from 'react'
 import { useNearWallet } from '@/contexts/NearContext'
 import { useContract } from '@/hooks/useContract'
 import {
@@ -20,21 +20,20 @@ export default function App() {
   const { wallet, signedAccountId } = useNearWallet()
   const { balance, take, burn, token, isBurning, isBuying, session, isLoadingBalance, buy } = useContract()
 
-  const [label, setLabel] = useState(true)
-  const [action, setAction] = useState(() => {})
+  const [label, setLabel] = useState<string | boolean>(true)
   const [openBurnModal, setOpenBurnModal] = useState(false)
   const [openBuyModal, setOpenBuyModal] = useState(false)
-  const [burnAmount, setBurnAmount] = useState()
-  const [buyAmount, setBuyAmount] = useState()
+  const [burnAmount, setBurnAmount] = useState('')
+  const [buyAmount, setBuyAmount] = useState('')
 
   const handleCloseBurnModal = () => {
     setOpenBurnModal(false)
-    setBurnAmount()
+    setBurnAmount('')
   }
 
   const handleCloseBuyModal = () => {
     setOpenBuyModal(false)
-    setBuyAmount()
+    setBuyAmount('')
   }
 
   useEffect(() => {
@@ -47,13 +46,21 @@ export default function App() {
     if (!wallet) return
 
     if (signedAccountId) {
-      setAction(() => wallet.signOut)
       setLabel(`Logout`)
     } else {
-      setAction(() => wallet.signIn)
       setLabel('Login')
     }
   }, [signedAccountId, wallet])
+
+  const action = () => {
+    if (!wallet) return
+
+    if (signedAccountId) {
+      return wallet.signOut()
+    }
+
+    return wallet.signIn()
+  }
 
   return (
     <Box padding={10} alignItems='center'>
@@ -111,7 +118,7 @@ export default function App() {
         onClose={handleCloseBurnModal}
         PaperProps={{
           component: 'form',
-          onSubmit: event => {
+          onSubmit: (event: FormEvent) => {
             event.preventDefault()
             burn(burnAmount)
           }
@@ -156,7 +163,7 @@ export default function App() {
         onClose={handleCloseBuyModal}
         PaperProps={{
           component: 'form',
-          onSubmit: event => {
+          onSubmit: (event: FormEvent) => {
             event.preventDefault()
             buy(buyAmount)
           }

@@ -47,8 +47,8 @@ export const useContract = () => {
         symbol: tokenMetadata.symbol,
         formatted: (+formatUnits(tokenBalance, tokenMetadata.decimals)).toLocaleString('en-Us')
       })
-    } catch (err) {
-      enqueueSnackbar(err.message, { variant: 'error' })
+    } catch (err: any) {
+      enqueueSnackbar(err.message || err, { variant: 'error' })
     } finally {
       setIsLoadingBalance(false)
     }
@@ -78,14 +78,14 @@ export const useContract = () => {
         args: { token_id: TokenContract, amount: tokenAmount.toString() },
         deposit: '1'
       })
-    } catch (err) {
+    } catch (err: any) {
       enqueueSnackbar(err?.message || err, { variant: 'error' })
     } finally {
       setIsBurning(false)
     }
   }
 
-  const take = async (amount = '1', cb = err => {}) => {
+  const take = async (amount = '1', cb = (err?: unknown) => {}) => {
     try {
       setIsUseSession(true)
 
@@ -106,7 +106,7 @@ export const useContract = () => {
       setSession(account.session)
 
       cb && cb()
-    } catch (err) {
+    } catch (err: any) {
       enqueueSnackbar(err?.message || err, { variant: 'error' })
       cb && cb(err)
     } finally {
@@ -130,7 +130,7 @@ export const useContract = () => {
         args: { amount: tokenAmount },
         deposit: '1'
       })
-    } catch (err) {
+    } catch (err: any) {
       enqueueSnackbar(err?.message || err, { variant: 'error' })
     } finally {
       setIsBuying(false)

@@ -1,6 +1,7 @@
 import '@/styles/globals.css'
 
 import NextHead from 'next/head'
+import type { AppProps } from 'next/app'
 
 import { useEffect, useState } from 'react'
 import { Wallet } from '@/near'
@@ -11,10 +12,10 @@ import { SnackbarProvider } from 'notistack'
 const wallet = new Wallet({
   createAccessKeyFor: BurnContract,
   networkId: NetworkId,
-  methods: ['use_session']
+  methodNames: ['use_session']
 })
 
-export default function MyApp({ Component, pageProps }) {
+export default function MyApp({ Component, pageProps }: AppProps) {
   const [signedAccountId, setSignedAccountId] = useState('')
 
   useEffect(() => {

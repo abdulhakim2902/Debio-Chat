@@ -12,17 +12,27 @@ import {
   TextField,
   Typography
 } from '@mui/material'
-import { Fragment, useState } from 'react'
+import { FC, Fragment, ReactNode, useState } from 'react'
 
 import SendIcon from '@mui/icons-material/Send'
 import axios from 'axios'
 import { enqueueSnackbar } from 'notistack'
 
-export const Chat = ({ take }) => {
-  const [message, setMessage] = useState()
+type ChatType = {
+  from: string
+  msg: ReactNode | string
+  time: string
+}
+
+export type ChatProps = {
+  take: (value: string, cb: (err?: unknown) => void) => void
+}
+
+export const Chat: FC<ChatProps> = ({ take }) => {
+  const [message, setMessage] = useState('')
   const [model, setModel] = useState('Llama3')
   const [isChatting, setIsChatting] = useState(false)
-  const [chats, setChats] = useState([{ from: 'AI', msg: 'Hello, this is a trial chat ai', time: '15:55' }])
+  const [chats, setChats] = useState<ChatType[]>([{ from: 'AI', msg: 'Hello, this is a trial chat ai', time: '15:55' }])
 
   const onChangeModel = () => {
     if (model === 'Llama3') {
@@ -32,7 +42,7 @@ export const Chat = ({ take }) => {
     }
   }
 
-  const addResponse = async msg => {
+  const addResponse = async (msg: string) => {
     if (model === 'Llama3') {
       addResponseLLama3(msg)
     } else if (model === 'OpenAI') {
@@ -42,7 +52,7 @@ export const Chat = ({ take }) => {
     }
   }
 
-  const addResponseLLama3 = async msg => {
+  const addResponseLLama3 = async (msg: string) => {
     const time = new Date().toLocaleTimeString().slice(0, 5)
     const loadingRespons = { from: 'AI', msg: <CircularProgress size={15} />, time }
     setIsChatting(true)
@@ -70,7 +80,7 @@ export const Chat = ({ take }) => {
         const response = { from: 'AI', msg: answer.data.response, time }
 
         setChats(prev => [...prev.slice(0, prev.length - 1), response])
-      } catch (err) {
+      } catch (err: any) {
         setChats(prev => [...prev.slice(0, prev.length - 1)])
         enqueueSnackbar(err?.message || err, { variant: 'error' })
       } finally {
@@ -79,7 +89,7 @@ export const Chat = ({ take }) => {
     })
   }
 
-  const addResponseOpenAI = async msg => {
+  const addResponseOpenAI = async (msg: string) => {
     const time = new Date().toLocaleTimeString().slice(0, 5)
     const loadingRespons = { from: 'AI', msg: <CircularProgress size={15} />, time }
     setIsChatting(true)
@@ -105,7 +115,7 @@ export const Chat = ({ take }) => {
         const response = { from: 'AI', msg: answer.data.response, time }
 
         setChats(prev => [...prev.slice(0, prev.length - 1), response])
-      } catch (err) {
+      } catch (err: any) {
         setChats(prev => [...prev.slice(0, prev.length - 1)])
         enqueueSnackbar(err?.message || err, { variant: 'error' })
       } finally {
@@ -114,7 +124,7 @@ export const Chat = ({ take }) => {
     })
   }
 
-  const addMessage = async (from, msg) => {
+  const addMessage = async (from: string, msg: string) => {
     if (msg.trim() === '') return
     // get the current time hh:mm
     const time = new Date().toLocaleTimeString().slice(0, 5)
