@@ -85,7 +85,7 @@ export const useContract = () => {
     }
   }
 
-  const take = async (amount = '1', cb = (err?: unknown) => {}) => {
+  const take = async (amount = '1', cb?: (err?: unknown) => void) => {
     try {
       setIsUseSession(true)
 

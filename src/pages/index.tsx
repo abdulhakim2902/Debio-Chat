@@ -18,7 +18,22 @@ import { Chat } from '@/components/Chat'
 
 export default function App() {
   const { wallet, signedAccountId } = useNearWallet()
-  const { balance, take, burn, token, isBurning, isBuying, session, isLoadingBalance, buy } = useContract()
+  const {
+    // Data
+    session,
+    balance,
+    token,
+
+    // Action
+    take,
+    burn,
+    buy,
+
+    // Loading state
+    isBuying,
+    isBurning,
+    isLoadingBalance
+  } = useContract()
 
   const [label, setLabel] = useState<string | boolean>(true)
   const [openBurnModal, setOpenBurnModal] = useState(false)
@@ -109,7 +124,7 @@ export default function App() {
             borderRadius={2}
             marginTop={2}
           >
-            <Chat take={take} />
+            <Chat session={session} take={take} />
           </Box>
         </Fragment>
       )}

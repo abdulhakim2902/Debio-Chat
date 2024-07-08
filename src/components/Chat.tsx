@@ -25,10 +25,11 @@ type ChatType = {
 }
 
 export type ChatProps = {
+  session: number
   take: (value: string, cb: (err?: unknown) => void) => void
 }
 
-export const Chat: FC<ChatProps> = ({ take }) => {
+export const Chat: FC<ChatProps> = ({ take, session }) => {
   const [message, setMessage] = useState('')
   const [model, setModel] = useState('Llama3')
   const [isChatting, setIsChatting] = useState(false)
@@ -58,35 +59,40 @@ export const Chat: FC<ChatProps> = ({ take }) => {
     setIsChatting(true)
     setChats(prev => [...prev, loadingRespons])
 
-    take('1', async err => {
-      if (err) {
-        const time = new Date().toLocaleTimeString().slice(0, 5)
-        const forbidden = "You don't have session"
-        const response = { from: 'AI', msg: forbidden, time }
+    if (session <= 0) {
+      const time = new Date().toLocaleTimeString().slice(0, 5)
+      const forbidden = "You don't have session"
+      const response = { from: 'AI', msg: forbidden, time }
+
+      setChats(prev => [...prev.slice(0, prev.length - 1), response])
+      setIsChatting(false)
+      return
+    }
+
+    try {
+      const answer = await axios.post('https://x.myriadchain.com/llm/api/generate', {
+        model: 'llama3',
+        prompt: msg,
+        stream: false
+      })
+
+      const time = new Date().toLocaleTimeString().slice(0, 5)
+      const response = { from: 'AI', msg: answer.data.response, time }
+
+      take('1', err => {
+        if (err) {
+          setChats(prev => [...prev.slice(0, prev.length - 1)])
+          return
+        }
 
         setChats(prev => [...prev.slice(0, prev.length - 1), response])
-        setIsChatting(false)
-        return
-      }
-
-      try {
-        const answer = await axios.post('https://x.myriadchain.com/llm/api/generate', {
-          model: 'llama3',
-          prompt: msg,
-          stream: false
-        })
-
-        const time = new Date().toLocaleTimeString().slice(0, 5)
-        const response = { from: 'AI', msg: answer.data.response, time }
-
-        setChats(prev => [...prev.slice(0, prev.length - 1), response])
-      } catch (err: any) {
-        setChats(prev => [...prev.slice(0, prev.length - 1)])
-        enqueueSnackbar(err?.message || err, { variant: 'error' })
-      } finally {
-        setIsChatting(false)
-      }
-    })
+      })
+    } catch (err: any) {
+      setChats(prev => [...prev.slice(0, prev.length - 1)])
+      enqueueSnackbar(err?.message || err, { variant: 'error' })
+    } finally {
+      setIsChatting(false)
+    }
   }
 
   const addResponseOpenAI = async (msg: string) => {
@@ -95,33 +101,38 @@ export const Chat: FC<ChatProps> = ({ take }) => {
     setIsChatting(true)
     setChats(prev => [...prev, loadingRespons])
 
-    take('1', async err => {
-      if (err) {
-        const time = new Date().toLocaleTimeString().slice(0, 5)
-        const forbidden = "You don't have session"
-        const response = { from: 'AI', msg: forbidden, time }
+    if (session <= 0) {
+      const time = new Date().toLocaleTimeString().slice(0, 5)
+      const forbidden = "You don't have session"
+      const response = { from: 'AI', msg: forbidden, time }
+
+      setChats(prev => [...prev.slice(0, prev.length - 1), response])
+      setIsChatting(false)
+      return
+    }
+
+    try {
+      const answer = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/api/chat`, {
+        msg: msg
+      })
+
+      const time = new Date().toLocaleTimeString().slice(0, 5)
+      const response = { from: 'AI', msg: answer.data.response, time }
+
+      take('1', err => {
+        if (err) {
+          setChats(prev => [...prev.slice(0, prev.length - 1)])
+          setIsChatting(false)
+          return
+        }
 
         setChats(prev => [...prev.slice(0, prev.length - 1), response])
         setIsChatting(false)
-        return
-      }
-
-      try {
-        const answer = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/api/chat`, {
-          msg: msg
-        })
-
-        const time = new Date().toLocaleTimeString().slice(0, 5)
-        const response = { from: 'AI', msg: answer.data.response, time }
-
-        setChats(prev => [...prev.slice(0, prev.length - 1), response])
-      } catch (err: any) {
-        setChats(prev => [...prev.slice(0, prev.length - 1)])
-        enqueueSnackbar(err?.message || err, { variant: 'error' })
-      } finally {
-        setIsChatting(false)
-      }
-    })
+      })
+    } catch (err: any) {
+      setChats(prev => [...prev.slice(0, prev.length - 1)])
+      enqueueSnackbar(err?.message || err, { variant: 'error' })
+    }
   }
 
   const addMessage = async (from: string, msg: string) => {
