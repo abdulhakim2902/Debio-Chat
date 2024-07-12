@@ -1,23 +1,69 @@
-import { BurnContract, TokenContract } from '@/config'
-import { useNearWallet } from '@/contexts/NearContext'
-import { formatUnits, parseUnits } from '@/utils/number'
+import { createContext, FC, ReactNode, useCallback, useContext, useEffect, useState } from 'react'
+import { useNearWallet } from './NearContext'
+import { BurnContract, TokenContract } from '@/src/config'
+import { formatUnits, parseUnits } from '@/src/utils/number'
 import { enqueueSnackbar } from 'notistack'
-import { useCallback, useState } from 'react'
+import { parseNearAmount } from 'near-api-js/lib/utils/format'
 
-export const useContract = () => {
+type ContractContextValue = {
+  loading: {
+    buy: boolean
+    burn: boolean
+    session: boolean
+    balance: boolean
+  }
+  session: number
+  token: Token
+  balance: () => void
+  buy: (amount?: string) => void
+  burn: (amount?: string) => void
+  take: (amount?: string, cb?: (err: unknown) => void) => void
+}
+
+export type Token = {
+  balance: number
+  decimals: number
+  symbol: string
+  formatted: string
+}
+
+export const ContractContext = createContext<ContractContextValue>({
+  loading: {
+    buy: false,
+    burn: false,
+    session: false,
+    balance: false
+  },
+  session: 0,
+  token: { balance: 0, decimals: 18, symbol: '', formatted: '0' },
+
+  balance: () => {},
+  buy: () => {},
+  burn: () => {},
+  take: () => {}
+})
+
+type ContractProviderProps = {
+  children: ReactNode
+}
+
+export const ContractProvider: FC<ContractProviderProps> = ({ children }) => {
   const { signedAccountId, wallet } = useNearWallet()
 
-  const [isBuying, setIsBuying] = useState(false)
-  const [isBurning, setIsBurning] = useState(false)
-  const [isUseSession, setIsUseSession] = useState(false)
-  const [isLoadingBalance, setIsLoadingBalance] = useState(true)
+  const [loading, setLoading] = useState({
+    buy: false,
+    burn: false,
+    session: false,
+    balance: false
+  })
 
   const [session, setSession] = useState(0)
   const [token, setToken] = useState({ balance: 0, decimals: 18, symbol: '', formatted: '0' })
 
   const balance = useCallback(async () => {
     try {
-      setIsLoadingBalance(true)
+      console.log('balance')
+      setLoading(prev => ({ ...prev, balance: true }))
 
       if (!signedAccountId || !wallet) {
         throw 'WALLET_NOT_CONNECTED'
@@ -40,6 +86,8 @@ export const useContract = () => {
         })
       ])
 
+      console.log(tokenBalance)
+
       setSession(session)
       setToken({
         balance: tokenBalance,
@@ -50,13 +98,13 @@ export const useContract = () => {
     } catch (err: any) {
       enqueueSnackbar(err.message || err, { variant: 'error' })
     } finally {
-      setIsLoadingBalance(false)
+      setLoading(prev => ({ ...prev, balance: false }))
     }
   }, [signedAccountId, wallet])
 
   const burn = async (amount = '1') => {
     try {
-      setIsBurning(true)
+      setLoading(prev => ({ ...prev, burn: true }))
 
       if (!wallet || !signedAccountId) {
         throw 'WALLET_NOT_CONNECTED'
@@ -81,13 +129,13 @@ export const useContract = () => {
     } catch (err: any) {
       enqueueSnackbar(err?.message || err, { variant: 'error' })
     } finally {
-      setIsBurning(false)
+      setLoading(prev => ({ ...prev, burn: false }))
     }
   }
 
   const take = async (amount = '1', cb?: (err?: unknown) => void) => {
     try {
-      setIsUseSession(true)
+      setLoading(prev => ({ ...prev, session: true }))
 
       if (!wallet || !signedAccountId) {
         throw 'WALLET_NOT_CONNECTED'
@@ -110,13 +158,13 @@ export const useContract = () => {
       enqueueSnackbar(err?.message || err, { variant: 'error' })
       cb && cb(err)
     } finally {
-      setIsUseSession(false)
+      setLoading(prev => ({ ...prev, session: false }))
     }
   }
 
   const buy = async (amount = '1') => {
     try {
-      setIsBuying(true)
+      setLoading(prev => ({ ...prev, buy: true }))
 
       if (!wallet || !signedAccountId) {
         throw 'WALLET_NOT_CONNECTED'
@@ -128,27 +176,20 @@ export const useContract = () => {
         contractId: TokenContract,
         method: 'buy',
         args: { amount: tokenAmount },
-        deposit: '1'
+        deposit: String(parseNearAmount('0.00125'))
       })
     } catch (err: any) {
       enqueueSnackbar(err?.message || err, { variant: 'error' })
     } finally {
-      setIsBuying(false)
+      setLoading(prev => ({ ...prev, buy: false }))
     }
   }
 
-  return {
-    isBuying,
-    isBurning,
-    isUseSession,
-    isLoadingBalance,
-
-    balance,
-    burn,
-    take,
-    buy,
-
-    token,
-    session
-  }
+  return (
+    <ContractContext.Provider value={{ loading, session, token, balance, buy, take, burn }}>
+      {children}
+    </ContractContext.Provider>
+  )
 }
+
+export const useContract = () => useContext(ContractContext)

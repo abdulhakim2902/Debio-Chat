@@ -1,22 +1,35 @@
-import {
-  Box,
-  Button,
-  CircularProgress,
-  Divider,
-  Grid,
-  IconButton,
-  List,
-  ListItem,
-  ListItemText,
-  Paper,
-  TextField,
-  Typography
-} from '@mui/material'
-import { FC, Fragment, ReactNode, useState } from 'react'
-
-import SendIcon from '@mui/icons-material/Send'
 import axios from 'axios'
+
+import { createContext, FC, ReactNode, useContext, useState } from 'react'
+import { useContract } from './ContractContext'
 import { enqueueSnackbar } from 'notistack'
+import { CircularProgress } from '@mui/material'
+
+export type ChatContextValue = {
+  loading: boolean
+  message: string
+  model: string
+  chats: ChatType[]
+
+  onChangeMessage: (value: string) => void
+  onChangeModel: () => void
+  onSendMessage: (from: string, msg: string) => void
+}
+
+export const ChatContext = createContext<ChatContextValue>({
+  loading: false,
+  message: '',
+  model: 'Llama3',
+  chats: [],
+
+  onChangeMessage: () => {},
+  onChangeModel: () => {},
+  onSendMessage: () => {}
+})
+
+type ChatProviderProps = {
+  children: ReactNode
+}
 
 type ChatType = {
   from: string
@@ -24,12 +37,9 @@ type ChatType = {
   time: string
 }
 
-export type ChatProps = {
-  session: number
-  take: (value: string, cb: (err?: unknown) => void) => void
-}
+export const ChatProvider: FC<ChatProviderProps> = ({ children }) => {
+  const { session, take } = useContract()
 
-export const Chat: FC<ChatProps> = ({ take, session }) => {
   const [message, setMessage] = useState('')
   const [model, setModel] = useState('Llama3')
   const [isChatting, setIsChatting] = useState(false)
@@ -145,59 +155,20 @@ export const Chat: FC<ChatProps> = ({ take, session }) => {
   }
 
   return (
-    <Fragment>
-      <Grid container>
-        <Box sx={{ marginX: 'auto', width: '100%' }}>
-          <Typography variant='h6' color='GrayText'>
-            Experimental Chat
-          </Typography>
-          <Box display='flex' justifyContent='space-between' sx={{ width: '100%', marginBottom: 1 }}>
-            <Button variant='outlined' color='secondary' disableRipple sx={{ cursor: 'default' }}>
-              {model}
-            </Button>
-
-            <Button variant='contained' color='secondary' onClick={onChangeModel}>
-              Change Model
-            </Button>
-          </Box>
-        </Box>
-      </Grid>
-      <Grid container component={Paper}>
-        <Grid item xs={12}>
-          <List>
-            {chats.map((c, i) => (
-              <ListItem key={i}>
-                <Grid container>
-                  <Grid item xs={12}>
-                    <ListItemText primary={c.msg}></ListItemText>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <ListItemText secondary={c.from + ' at ' + c.time}></ListItemText>
-                  </Grid>
-                </Grid>
-              </ListItem>
-            ))}
-          </List>
-          <Divider />
-          <Box sx={{ padding: '20px' }} display='flex' justifyContent='space-between' alignItems='center'>
-            <TextField
-              id='outlined-basic-email'
-              InputProps={{
-                disableUnderline: true
-              }}
-              size='small'
-              onChange={event => setMessage(event.target.value)}
-              value={message ? message : ''}
-              label='Type Something'
-              sx={{ width: '90%' }}
-              disabled={isChatting}
-            />
-            <IconButton onClick={() => addMessage('ME', message)} edge='start' disabled={isChatting}>
-              {isChatting ? <CircularProgress size={20} /> : <SendIcon color='info' />}
-            </IconButton>
-          </Box>
-        </Grid>
-      </Grid>
-    </Fragment>
+    <ChatContext.Provider
+      value={{
+        message,
+        model,
+        loading: isChatting,
+        chats,
+        onChangeMessage: setMessage,
+        onChangeModel,
+        onSendMessage: addMessage
+      }}
+    >
+      {children}
+    </ChatContext.Provider>
   )
 }
+
+export const useChat = () => useContext(ChatContext)

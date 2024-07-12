@@ -1,6 +1,5 @@
-import { FormEvent, Fragment, useEffect, useState } from 'react'
-import { useNearWallet } from '@/contexts/NearContext'
-import { useContract } from '@/hooks/useContract'
+import { useContract } from '@/src/contexts/ContractContext'
+import { useNearWallet } from '@/src/contexts/NearContext'
 import {
   Box,
   Button,
@@ -14,32 +13,18 @@ import {
   TextField,
   Typography
 } from '@mui/material'
-import { Chat } from '@/components/Chat'
+import { FormEvent, Fragment, useEffect, useState } from 'react'
 
-export default function App() {
+export const Header = () => {
   const { wallet, signedAccountId } = useNearWallet()
-  const {
-    // Data
-    session,
-    balance,
-    token,
 
-    // Action
-    take,
-    burn,
-    buy,
+  const { loading, token, session, burn, buy } = useContract()
 
-    // Loading state
-    isBuying,
-    isBurning,
-    isLoadingBalance
-  } = useContract()
-
-  const [label, setLabel] = useState<string | boolean>(true)
   const [openBurnModal, setOpenBurnModal] = useState(false)
   const [openBuyModal, setOpenBuyModal] = useState(false)
   const [burnAmount, setBurnAmount] = useState('')
   const [buyAmount, setBuyAmount] = useState('')
+  const [label, setLabel] = useState<string | boolean>(true)
 
   const handleCloseBurnModal = () => {
     setOpenBurnModal(false)
@@ -50,13 +35,6 @@ export default function App() {
     setOpenBuyModal(false)
     setBuyAmount('')
   }
-
-  useEffect(() => {
-    if (signedAccountId) {
-      balance()
-    }
-  }, [signedAccountId, balance])
-
   useEffect(() => {
     if (!wallet) return
 
@@ -78,56 +56,52 @@ export default function App() {
   }
 
   return (
-    <Box padding={10} alignItems='center'>
-      <Box display='flex' justifyContent='space-between' marginBottom={15}>
-        <Box sx={{ visibility: !!signedAccountId ? 'visible' : 'hidden' }}>
-          <Button
-            variant='outlined'
-            disableRipple
-            sx={{ opacity: signedAccountId ? 1 : 0, cursor: 'default', height: '37px' }}
-          >
-            {signedAccountId}
-          </Button>
-          <Box marginTop={1} sx={{ color: 'GrayText' }}>
-            <Typography>
-              Total Balance: {isLoadingBalance ? <CircularProgress size={15} /> : token.formatted}
-            </Typography>
-            <Typography>Total Session: {isLoadingBalance ? <CircularProgress size={15} /> : session}</Typography>
+    <Fragment>
+      <Box
+        display='flex'
+        justifyContent={signedAccountId ? 'space-between' : 'flex-end'}
+        sx={{ backgroundColor: 'whitesmoke', marginX: 'auto' }}
+        padding={2}
+        borderRadius={2}
+      >
+        {signedAccountId && (
+          <Box>
+            <Button
+              variant='outlined'
+              disableRipple
+              sx={{ opacity: signedAccountId ? 1 : 0, cursor: 'default', height: '37px' }}
+            >
+              {signedAccountId}
+            </Button>
+            <Box marginTop={1} sx={{ color: 'GrayText' }}>
+              <Typography>
+                Total Balance: {loading.balance ? <CircularProgress size={15} /> : token.formatted}
+              </Typography>
+              <Typography>Total Session: {loading.balance ? <CircularProgress size={15} /> : session}</Typography>
+            </Box>
           </Box>
-        </Box>
+        )}
+
         <Button variant='contained' onClick={action} sx={{ width: '100px', height: '37px' }}>
           {label === true ? <CircularProgress size={25} color='info' /> : label}
         </Button>
       </Box>
-      {!!signedAccountId && (
-        <Fragment>
-          <Box
-            sx={{ width: '30%', backgroundColor: 'whitesmoke', marginX: 'auto' }}
-            textAlign='center'
-            padding={2}
-            borderRadius={2}
-          >
-            <Box display='flex' justifyContent='space-between'>
-              <Button variant='outlined' color='error' onClick={() => setOpenBurnModal(true)}>
-                Burn
-              </Button>
-              <Button variant='contained' color='info' onClick={() => setOpenBuyModal(true)}>
-                Buy {token.symbol}
-              </Button>
-            </Box>
-          </Box>
-
-          <Box
-            sx={{ width: '30%', backgroundColor: 'whitesmoke', marginX: 'auto' }}
-            textAlign='center'
-            padding={2}
-            borderRadius={2}
-            marginTop={2}
-          >
-            <Chat session={session} take={take} />
-          </Box>
-        </Fragment>
-      )}
+      <Box
+        sx={{ backgroundColor: 'whitesmoke', marginX: 'auto' }}
+        textAlign='center'
+        padding={2}
+        borderRadius={2}
+        marginTop={2}
+      >
+        <Box display='flex' justifyContent='space-between'>
+          <Button variant='outlined' color='error' disabled={!signedAccountId} onClick={() => setOpenBurnModal(true)}>
+            Burn
+          </Button>
+          <Button variant='contained' color='info' disabled={!signedAccountId} onClick={() => setOpenBuyModal(true)}>
+            Buy {token.symbol}
+          </Button>
+        </Box>
+      </Box>
       <Dialog
         open={openBurnModal}
         onClose={handleCloseBurnModal}
@@ -169,7 +143,7 @@ export default function App() {
             Cancel
           </Button>
           <Button type='submit' variant='contained'>
-            {isBurning ? 'Burning...' : 'Burn'}
+            {loading.burn ? 'Burning...' : 'Burn'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -214,10 +188,10 @@ export default function App() {
             Cancel
           </Button>
           <Button type='submit' variant='contained'>
-            {isBuying ? 'Buying...' : 'Buy'}
+            {loading.buy ? 'Buying...' : 'Buy'}
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </Fragment>
   )
 }
